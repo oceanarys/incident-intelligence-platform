@@ -29,7 +29,8 @@
     <p class="muted" id="status">Not logged in.</p>
 
     <div class="row">
-      <button id="btnLoad" disabled>Load Incidents</button>
+      <button id="btnLoad" disabled>Load Incidents</button><button id="btnWhoami" disabled>WhoAmI</button>
+
     </div>
 
     <pre id="output">Please login to load incidents.</pre>
@@ -68,7 +69,10 @@
       }
 
       $("btnLogout").style.display = "inline-block";
+      $("btnWhoami").disabled = true;
       $("btnLoad").disabled = false;
+      $("btnWhoami").disabled = false;
+
       setStatus("Logged in as: " + session.user.email);
     }
 
@@ -105,6 +109,22 @@
     };
 
     $("btnLogout").onclick = async () => {
+      $("btnWhoami").onclick = async () => {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    setOutput("Please login first.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.rpc("debug_whoami");
+
+  if (error) {
+    setOutput("WhoAmI error: " + error.message);
+    return;
+  }
+
+  setOutput(data);
+};
       await supabaseClient.auth.signOut();
       await refreshSessionUI();
     };
