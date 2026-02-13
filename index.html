@@ -1,84 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Incident Intelligence Platform</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      padding: 40px;
-    }
-
-    h1 {
-      margin-bottom: 30px;
-    }
-
-    button {
-      padding: 10px 20px;
-      background: #22c55e;
-      border: none;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    input {
-      padding: 8px;
-      margin: 5px 0;
-      width: 250px;
-    }
-
-    .card {
-      background: #1e293b;
-      padding: 20px;
-      margin-top: 20px;
-      border-radius: 8px;
-    }
-  </style>
 </head>
 <body>
 
 <h1>Incident Intelligence Platform</h1>
 
-<div class="card">
-  <h3>Login</h3>
-  <input id="email" type="email" placeholder="Email" />
-  <br />
-  <input id="password" type="password" placeholder="Password" />
-  <br />
-  <button onclick="login()">Login</button>
-</div>
+<button onclick="loadIncidents()">Load Incidents</button>
 
-<div class="card">
-  <h3>Incidents</h3>
-  <button onclick="loadIncidents()">Load My Incidents</button>
-  <div id="incidentList"></div>
-</div>
+<ul id="incidentList"></ul>
 
 <script>
-  const SUPABASE_URL = "BURAYA_SUPABASE_URL";
-  const SUPABASE_ANON_KEY = "BURAYA_SUPABASE_ANON_KEY";
-
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  async function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Login successful");
-    }
-  }
+  const supabaseUrl = "https://xnrrjsegjfpidvvlaiju.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk";
+  
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   async function loadIncidents() {
     const { data, error } = await supabase
@@ -86,22 +25,21 @@
       .select("*");
 
     if (error) {
-      alert(error.message);
+      alert("Error: " + error.message);
       return;
     }
 
-    const container = document.getElementById("incidentList");
-    container.innerHTML = "";
+    const list = document.getElementById("incidentList");
+    list.innerHTML = "";
 
-    data.forEach(i => {
-      container.innerHTML += `
-        <div style="margin-top:10px;">
-          <strong>${i.incident_type}</strong> - ${i.status}
-        </div>
-      `;
+    data.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item.description || "No description";
+      list.appendChild(li);
     });
   }
 </script>
 
 </body>
 </html>
+Connect Supabase
