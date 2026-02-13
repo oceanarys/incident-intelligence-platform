@@ -1,44 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <title>Incident Intelligence Platform</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; }
+    .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    input { padding: 8px; width: 260px; }
+    button { padding: 8px 12px; cursor: pointer; }
+    .card { border: 1px solid #ddd; padding: 16px; border-radius: 8px; max-width: 900px; }
+    pre { background: #f7f7f7; padding: 12px; border-radius: 8px; overflow: auto; }
+    .muted { color: #666; }
+  </style>
 </head>
 <body>
 
   <h1>Incident Intelligence Platform</h1>
 
-  <button onclick="loadIncidents()">Load Incidents</button>
+  <div class="card">
+    <div class="row">
+      <input id="email" type="email" placeholder="email" />
+      <input id="password" type="password" placeholder="password" />
+      <button id="btnLogin">Login</button>
+      <button id="btnSignup">Signup</button>
+      <button id="btnLogout" style="display:none;">Logout</button>
+    </div>
 
-  <pre id="output"></pre>
+    <p class="muted" id="status">Not logged in.</p>
 
-  <!-- Supabase v2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <div class="row">
+      <button id="btnLoad" disabled>Load Incidents</button>
+    </div>
+
+    <pre id="output">Please login to load incidents.</pre>
+  </div>
+
+  <!-- Supabase JS v2 (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <script>
+    // 1) CONFIG
     const supabaseUrl = "https://xnrrjsegjfpidvvlaiuj.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk"; // <-- anon key'i buraya tam yapıştır
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    const supabaseClient = supabase.createClient(
-      supabaseUrl,
-      supabaseKey
-    );
+    // 2) UI HELPERS
+    const $ = (id) => document.getElementById(id);
 
-    async function loadIncidents() {
-      const { data, error } = await supabaseClient
-        .from("incidents")
-        .select("*");
+    function setStatus(text) { $("status").textContent = text; }
+    function setOutput(obj) {
+      $("output").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
 
+    async function refreshSessionUI() {
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
       if (error) {
-        console.error("Supabase Error:", error);
-        document.getElementById("output").textContent =
-          "Error: " + error.message;
+        setOutput("Session error: " + (error.message || error));
         return;
       }
 
-      document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2);
-    }
-  </script>
+      if (!session) {
+        $("btnLogout").style.display = "none";
+        $("btnLoad").disabled = true;
+        setStatus("Not logged in.");
+        setOutput("Please login to load incidents.");
+        return;
+      }
 
+      $("btnLogout").style.display = "inline-block";
+      $("btnLoad").disabled = false;
+      setStatus("Logged in as: " + session.user.email);
+    }
+
+    // 3) AUTH ACTIONS
+    $("btnLogin").onclick = async () => {
+      try {
+        const email = $("email").value.trim();
+        const password = $("password").value;
+
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        await refreshSessionUI();
+        setOutput("Login OK. Now click 'Load Incidents'.");
+      } catch (e) {
+        console.error(e);
+        setOutput("Login error: " + (e.message || e));
+      }
+    };
+
+    $("btnSignup").onclick = async () => {
+      try {
+        const email = $("email").value.trim();
+        const password = $("password").value;
+
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+
+        setOutput("Signup OK. If email confirmation is enabled, confirm then login.");
+      } catch (e) {
+        console.error(e);
+        setOutput("Signup error: " + (e.message || e));
+      }
+    };
+
+    $("btnLogout").onclick = async () => {
+      await supabaseClient.auth.signOut();
+      await refreshSessionUI();
+    };
+
+    // 4) DATA LOAD
+    $("btnLoad").onclick = async () => {
+      try {
+        setOutput("Loading...");
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+          setOutput("Please login first.");
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from("incidents")
+          .select("*")
+          .order("reported_at", { ascending: false });
+
+        if (error) throw error;
+
+        setOutput(data);
+      } catch (e) {
+        console.error(e);
+        setOutput("Load error: " + (e.message || e));
+      }
+    };
+
+    // 5) INIT
+    supabaseClient.auth.onAuthStateChange(() => refreshSessionUI());
+    refreshSessionUI();
+  </script>
 </body>
 </html>
