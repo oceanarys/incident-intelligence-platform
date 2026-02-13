@@ -14,32 +14,29 @@
 <ul id="incidentList"></ul>
 
 <script>
-  const supabaseUrl = "https://xnrrjsegjfpidvvlaiju.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk";
-  
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+  const supabaseUrl = 'https://xnrrjsegjfpidvvlaiuj.supabase.co'
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk'
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   async function loadIncidents() {
     const { data, error } = await supabase
-      .from("incidents")
-      .select("*");
+      .from('incidents')
+      .select('*')
 
     if (error) {
-      alert("Error: " + error.message);
-      return;
+      console.error(error)
+      return
     }
 
-    const list = document.getElementById("incidentList");
-    list.innerHTML = "";
-
-    data.forEach(item => {
-      const li = document.createElement("li");
-      li.textContent = item.description || "No description";
-      list.appendChild(li);
-    });
+    console.log(data)
+    alert(JSON.stringify(data, null, 2))
   }
+
+  // GLOBAL yapıyoruz
+  window.loadIncidents = loadIncidents
 </script>
 
-</body>
-</html>
 Connect Supabase
