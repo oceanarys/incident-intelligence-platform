@@ -110,6 +110,7 @@
 
     $("btnLogout").onclick = async () => {
       $("btnWhoami").onclick = async () => {
+      setOutput("WhoAmI clicked...");
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
     setOutput("Please login first.");
