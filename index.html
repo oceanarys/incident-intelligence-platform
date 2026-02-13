@@ -1,42 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
   <title>Incident Intelligence Platform</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<h1>Incident Intelligence Platform</h1>
+  <h1>Incident Intelligence Platform</h1>
 
-<button onclick="loadIncidents()">Load Incidents</button>
+  <button onclick="loadIncidents()">Load Incidents</button>
 
-<ul id="incidentList"></ul>
+  <pre id="output"></pre>
 
-<script>
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  const supabaseUrl = 'https://xnrrjsegjfpidvvlaiuj.supabase.co'
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk'
-  const supabase = createClient(supabaseUrl, supabaseKey)
+  <script>
+    const supabaseUrl = "https://xnrrjsegjfpidvvlaiuj.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  async function loadIncidents() {
-    const { data, error } = await supabase
-      .from('incidents')
-      .select('*')
+    async function loadIncidents() {
+      const { data, error } = await supabase
+        .from("incidents")
+        .select("*");
 
-    if (error) {
-      console.error(error)
-      return
+      if (error) {
+        console.error(error);
+        document.getElementById("output").textContent = "Error: " + error.message;
+      } else {
+        console.log(data);
+        document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+      }
     }
+  </script>
 
-    console.log(data)
-    alert(JSON.stringify(data, null, 2))
-  }
-
-  // GLOBAL yapıyoruz
-  window.loadIncidents = loadIncidents
-</script>
-
-Connect Supabase
+</body>
+</html>
