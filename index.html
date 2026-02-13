@@ -11,11 +11,13 @@
     .card { border: 1px solid #ddd; padding: 16px; border-radius: 8px; max-width: 900px; }
     pre { background: #f7f7f7; padding: 12px; border-radius: 8px; overflow: auto; }
     .muted { color: #666; }
+    .build { font-size: 12px; color: #999; margin-top: 6px; }
   </style>
 </head>
 <body>
 
   <h1>Incident Intelligence Platform</h1>
+  <div class="build" id="build"></div>
 
   <div class="card">
     <div class="row">
@@ -29,135 +31,120 @@
     <p class="muted" id="status">Not logged in.</p>
 
     <div class="row">
-      <button id="btnLoad" disabled>Load Incidents</button><button id="btnWhoami" disabled>WhoAmI</button>
-
+      <button id="btnLoad" disabled>Load Incidents</button>
+      <button id="btnWhoami" disabled>WhoAmI</button>
     </div>
 
     <pre id="output">Please login to load incidents.</pre>
   </div>
 
-  <!-- Supabase JS v2 (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <script>
-    // 1) CONFIG
-    const supabaseUrl = "https://xnrrjsegjfpidvvlaiuj.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk"; // <-- anon key'i buraya tam yapıştır
-    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    // CHANGE THIS every deploy to defeat cache (put today's timestamp)
+    const BUILD_ID = "build-2026-02-13-01";
 
-    // 2) UI HELPERS
-    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", () => {
+      const $ = (id) => document.getElementById(id);
+      const setStatus = (t) => $("status").textContent = t;
+      const setOutput = (obj) => $("output").textContent =
+        (typeof obj === "string" ? obj : JSON.stringify(obj, null, 2));
 
-    function setStatus(text) { $("status").textContent = text; }
-    function setOutput(obj) {
-      $("output").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-    }
+      $("build").textContent = "BUILD: " + BUILD_ID;
 
-    async function refreshSessionUI() {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (error) {
-        setOutput("Session error: " + (error.message || error));
-        return;
-      }
+      const supabaseUrl = "https://xnrrjsegjfpidvvlaiuj.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucnJqc2VnamZwaWR2dmxhaXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NjE0NjcsImV4cCI6MjA4NjUzNzQ2N30.lqW1KJtDAlowuAE8CstKJXdh91iOjzlkhxvS_ewBcsk"; // anon key
+      const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-      if (!session) {
-        $("btnLogout").style.display = "none";
-        $("btnLoad").disabled = true;
-        setStatus("Not logged in.");
-        setOutput("Please login to load incidents.");
-        return;
-      }
-
-      $("btnLogout").style.display = "inline-block";
-      $("btnWhoami").disabled = true;
-      $("btnLoad").disabled = false;
-      $("btnWhoami").disabled = false;
-
-      setStatus("Logged in as: " + session.user.email);
-    }
-
-    // 3) AUTH ACTIONS
-    $("btnLogin").onclick = async () => {
-      try {
-        const email = $("email").value.trim();
-        const password = $("password").value;
-
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-
-        await refreshSessionUI();
-        setOutput("Login OK. Now click 'Load Incidents'.");
-      } catch (e) {
-        console.error(e);
-        setOutput("Login error: " + (e.message || e));
-      }
-    };
-
-    $("btnSignup").onclick = async () => {
-      try {
-        const email = $("email").value.trim();
-        const password = $("password").value;
-
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) throw error;
-
-        setOutput("Signup OK. If email confirmation is enabled, confirm then login.");
-      } catch (e) {
-        console.error(e);
-        setOutput("Signup error: " + (e.message || e));
-      }
-    };
-
-    $("btnLogout").onclick = async () => {
-      $("btnWhoami").onclick = async () => {
-      setOutput("WhoAmI clicked...");
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
-    setOutput("Please login first.");
-    return;
-  }
-
-  const { data, error } = await supabaseClient.rpc("debug_whoami");
-
-  if (error) {
-    setOutput("WhoAmI error: " + error.message);
-    return;
-  }
-
-  setOutput(data);
-};
-      await supabaseClient.auth.signOut();
-      await refreshSessionUI();
-    };
-
-    // 4) DATA LOAD
-    $("btnLoad").onclick = async () => {
-      try {
-        setOutput("Loading...");
-
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-          setOutput("Please login first.");
+      async function refreshSessionUI() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) {
+          setOutput("Session error: " + error.message);
           return;
         }
 
-        const { data, error } = await supabaseClient
-          .from("incidents")
-          .select("*")
-          .order("reported_at", { ascending: false });
+        if (!session) {
+          $("btnLogout").style.display = "none";
+          $("btnLoad").disabled = true;
+          $("btnWhoami").disabled = true;
+          setStatus("Not logged in.");
+          setOutput("Please login to load incidents.");
+          return;
+        }
 
-        if (error) throw error;
-
-        setOutput(data);
-      } catch (e) {
-        console.error(e);
-        setOutput("Load error: " + (e.message || e));
+        $("btnLogout").style.display = "inline-block";
+        $("btnLoad").disabled = false;
+        $("btnWhoami").disabled = false;
+        setStatus("Logged in as: " + session.user.email);
       }
-    };
 
-    // 5) INIT
-    supabaseClient.auth.onAuthStateChange(() => refreshSessionUI());
-    refreshSessionUI();
+      $("btnLogin").addEventListener("click", async () => {
+        try {
+          const email = $("email").value.trim();
+          const password = $("password").value;
+
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          if (!data?.session) { setOutput("Login failed: no session returned."); return; }
+
+          await refreshSessionUI();
+          setOutput("Login OK. Now click 'Load Incidents' or 'WhoAmI'.");
+        } catch (e) {
+          await refreshSessionUI();
+          setOutput("Login error: " + (e.message || e));
+        }
+      });
+
+      $("btnSignup").addEventListener("click", async () => {
+        try {
+          const email = $("email").value.trim();
+          const password = $("password").value;
+
+          const { error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+
+          setOutput("Signup OK. Confirm email if enabled, then login.");
+        } catch (e) {
+          setOutput("Signup error: " + (e.message || e));
+        }
+      });
+
+      $("btnLogout").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        await refreshSessionUI();
+      });
+
+      $("btnLoad").addEventListener("click", async () => {
+        try {
+          setOutput("Loading incidents...");
+          const { data, error } = await supabaseClient
+            .from("incidents")
+            .select("*")
+            .order("reported_at", { ascending: false });
+
+          if (error) throw error;
+          setOutput(data);
+        } catch (e) {
+          setOutput("Load error: " + (e.message || e));
+        }
+      });
+
+      $("btnWhoami").addEventListener("click", async () => {
+        // This MUST show if the button works.
+        setOutput("WhoAmI clicked...");
+
+        try {
+          const { data, error } = await supabaseClient.rpc("debug_whoami");
+          if (error) throw error;
+          setOutput(data);
+        } catch (e) {
+          setOutput("WhoAmI error: " + (e.message || e));
+        }
+      });
+
+      supabaseClient.auth.onAuthStateChange(() => refreshSessionUI());
+      refreshSessionUI();
+    });
   </script>
 </body>
 </html>
